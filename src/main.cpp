@@ -25,7 +25,7 @@
 // D7        | D6         | D5             | D4       | D3              | D2              | D1 | D0
 // ----------+------------+----------------+----------+-----------------+-----------------+----+----
 // self test | SPI        | interrupt mode | reserved | resolution      | justified mode  | g range
-// disabled  | 4-wire SPI | active high    |          | full resolution | right-justified | +/- 2 g
+// disabled  | 4-wire SPI | active high    |          | full resolution | right-justified | +/-2 g
 #define DATA_FORMAT 0x31
 #define DATA_FORMAT_CONFIG 0b0'0'0'0'1'0'00
 
@@ -39,7 +39,6 @@ ADXL345 adxl(PB_9, PB_8);
 void read_data_adxllib()
 {
     adxl.setDataRate(BW_RATE_CONFIG);
-    adxl.setPowerMode(NORMAL_OPERATION);
     adxl.setPowerControl(POWER_CTL_CONFIG);
     adxl.setDataFormatControl(DATA_FORMAT_CONFIG);
 
@@ -50,9 +49,9 @@ void read_data_adxllib()
             return;
         }
 
-        int readings[3];
+        float readings[3];
         adxl.getOutput(readings);
-        printf("x: %5d\ty: %5d\tz: %5d\n", readings[0], readings[1], readings[2]);
+        printf("x: %4.5f\ty: %4.5f\tz: %4.5f\n", readings[0], readings[1], readings[2]);
 
         thread_sleep_for(100);
     }
