@@ -3,6 +3,7 @@
 // Accelerometer datasheet: https://www.mouser.com/datasheet/2/389/dm00168691-1798633.pdf
 #include "mbed.h"
 
+#include "lcd_display.h"
 #include <ADXL345_I2C.h>
 
 // BW_RATE configurations:
@@ -59,5 +60,6 @@ void read_data_adxllib()
 
 int main()
 {
-    read_data_adxllib();
+    // read_data_adxllib();
+    run();
 }
