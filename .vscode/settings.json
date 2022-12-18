@@ -9,5 +9,6 @@
         "shared_mutex": "cpp",
         "sstream": "cpp",
         "streambuf": "cpp"
-    }
+    },
+    "workbench.editor.revealIfOpen": true
 }
