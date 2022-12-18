@@ -1,3 +1,6 @@
+#ifndef _LCD_DISPLAY
+#define _LCD_DISPLAY
+
 #include <mbed.h>
 // this file has all the functions for interacting
 // with the screen
@@ -28,12 +31,12 @@ InterruptIn intB(PA_0, PullDown);
 void setup_background_layer()
 {
     lcd.SelectLayer(BACKGROUND);
-    lcd.Clear(LCD_COLOR_BLACK);
-    lcd.SetBackColor(LCD_COLOR_BLACK);
+    lcd.Clear(LCD_COLOR_WHITE);
+    lcd.SetBackColor(LCD_COLOR_WHITE);
     lcd.SetTextColor(LCD_COLOR_DARKGRAY);
     lcd.SetLayerVisible(BACKGROUND, ENABLE);
-    lcd.SetTransparency(BACKGROUND, 0x7Fu);
-    for (int i = lcd.GetXSize() / 2 - GRAPH_PADDING; i < lcd.GetXSize() / 2; i++) {
+    lcd.SetTransparency(BACKGROUND, 0x9Fu);
+    for (uint16_t i = lcd.GetXSize() / 2 - GRAPH_PADDING + 1; i < lcd.GetXSize() / 2; i++) {
         lcd.DrawCircle(lcd.GetXSize() / 2, lcd.GetYSize() / 2, i);
     }
 }
@@ -49,10 +52,10 @@ void setup_foreground_layer(uint32_t color)
 }
 
 // stack used by the draw_thread
-unsigned char blink_thread_stack[4096];
-unsigned char full_thread_stack[4096];
-Thread blink_thread(osPriorityBelowNormal1, 4096, blink_thread_stack);
-Thread full_thread(osPriorityBelowNormal1, 4096, full_thread_stack);
+unsigned char blink_thread_stack[512];
+unsigned char full_thread_stack[512];
+Thread blink_thread(osPriorityBelowNormal1, 512, blink_thread_stack);
+Thread full_thread(osPriorityBelowNormal1, 512, full_thread_stack);
 
 // semaphore used to protect the new_values buffer
 Semaphore blink_semaphore(0, BUFFER_SIZE);
@@ -75,9 +78,7 @@ void i2c_cb_rise()
 void draw_circle()
 {
     lcd.SelectLayer(FOREGROUND);
-    for (int i = 1; i < lcd.GetXSize() / 2 - GRAPH_PADDING; i++) {
-        lcd.DrawCircle(lcd.GetXSize() / 2, lcd.GetYSize() / 2, i);
-    }
+    lcd.FillCircle(lcd.GetXSize() / 2, lcd.GetYSize() / 2, lcd.GetXSize() / 2 - GRAPH_PADDING);
 }
 
 // Blink warning thread
@@ -106,14 +107,14 @@ void full_thread_proc()
         // wait for main thread to release a semaphore to
         // indicate normal state.
         full_semaphore.acquire();
-        setup_foreground_layer(LCD_COLOR_CYAN);
+        setup_foreground_layer(LCD_COLOR_DARKBLUE);
         printf("Normal\n");
         lcd.SelectLayer(FOREGROUND);
         draw_circle();
     }
 }
 
-void run()
+void lcd_run()
 {
     setup_background_layer();
     intB.rise(&i2c_cb_rise);
@@ -133,3 +134,5 @@ void run()
         }
     }
 }
+
+#endif

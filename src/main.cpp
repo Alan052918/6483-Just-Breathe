@@ -33,9 +33,10 @@
 // address of the first output register
 #define DATAX0 0x32
 
-#define SPI_FLAG 1
+unsigned char LCD_thread_stack[4096];
+Thread LCD_thread(osPriorityBelowNormal1, 4096, LCD_thread_stack);
 
-ADXL345 adxl(PB_9, PB_8);
+ADXL345 adxl(PB_11, PB_10);
 
 void read_data_adxllib()
 {
@@ -52,14 +53,20 @@ void read_data_adxllib()
 
         int readings[3];
         adxl.getOutput(readings);
-        printf("x: %5d\ty: %5d\tz: %5d\n", readings[0], readings[1], readings[2]);
 
-        thread_sleep_for(100);
+        int raw_x = (signed short)(unsigned)readings[0];
+        int raw_y = (signed short)(unsigned)readings[1];
+        int raw_z = (signed short)(unsigned)readings[2];
+        double comb = sqrt(raw_x * raw_x + raw_y * raw_y + raw_z * raw_z) / 256;
+
+        printf("x: %5d\ty: %5d\tz: %5d\t Combined Acc: %.5lf \n", raw_x, raw_y, raw_z, comb);
+
+        thread_sleep_for(10);
     }
 }
 
 int main()
 {
-    // read_data_adxllib();
-    run();
+    LCD_thread.start(lcd_run);
+    read_data_adxllib();
 }
