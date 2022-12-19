@@ -1,4 +1,11 @@
 // Documents
+//
+// Group Members:
+// Yujie Yu, Net ID yy3913
+// Weijie Li, Net ID wl2369
+// Tong Wu, Net ID tw2593
+// Junda Ai, Net ID ja4426
+//
 // Dev board dev manual: https://www.st.com/resource/en/user_manual/um1670-discovery-kit-with-stm32f429zi-mcu-stmicroelectronics.pdf
 // Accelerometer datasheet: https://www.mouser.com/datasheet/2/389/dm00168691-1798633.pdf
 #include "mbed.h"

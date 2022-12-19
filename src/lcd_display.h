@@ -23,26 +23,31 @@ char display_buf[3][60];
 uint32_t graph_width = lcd.GetXSize() - 2 * GRAPH_PADDING;
 uint32_t graph_height = graph_width;
 
+// interrupt setup for debugging using user btn
 InterruptIn intB(PA_0, PullDown);
 
 Timeout timeout;
 
-// stack used by the draw_thread
+// stack used by the threads
 unsigned char blink_thread_stack[512];
 unsigned char full_thread_stack[512];
+
+// threads for blinking screen and normal screen
 Thread blink_thread(osPriorityBelowNormal1, 512, blink_thread_stack);
 Thread full_thread(osPriorityBelowNormal1, 512, full_thread_stack);
 
 // semaphore used to protect the new_values buffer
 Semaphore blink_semaphore(0, BUFFER_SIZE);
 Semaphore full_semaphore(0, BUFFER_SIZE);
+
 EventFlags status_flags;
 
 bool _cnt = true;
 
-// sets the background layer
-// to be visible, transparent, and
-// resets its colors to all black
+//--------------- LCD +++++++++++++++
+// sets the background layer to
+// white and draw the outer ring
+// on the screen
 void setup_background_layer()
 {
     lcd.SelectLayer(BACKGROUND);
@@ -56,8 +61,8 @@ void setup_background_layer()
     }
 }
 
-// resets the foreground layer to
-// all black
+// sets the foreground layer with @param color
+// to draw inner circle
 void setup_foreground_layer(uint32_t color)
 {
     lcd.SelectLayer(FOREGROUND);
@@ -66,7 +71,15 @@ void setup_foreground_layer(uint32_t color)
     lcd.SetTextColor(color);
 }
 
-// ISR
+// Helper function to draw circle
+void draw_circle()
+{
+    lcd.SelectLayer(FOREGROUND);
+    lcd.FillCircle(lcd.GetXSize() / 2, lcd.GetYSize() / 2, lcd.GetXSize() / 2 - GRAPH_PADDING);
+}
+
+//--------------- callback & ISR +++++++++++++++
+// ISR for button interrupt
 void i2c_cb_rise()
 {
     _cnt = !_cnt;
@@ -96,14 +109,10 @@ void breath_detected()
     timeout.attach(timeout_expired_cb, 12s);
 }
 
-// Helper function to draw circle
-void draw_circle()
-{
-    lcd.SelectLayer(FOREGROUND);
-    lcd.FillCircle(lcd.GetXSize() / 2, lcd.GetYSize() / 2, lcd.GetXSize() / 2 - GRAPH_PADDING);
-}
-
+//--------------- thread +++++++++++++++
 // Blink warning thread
+// blocked when not notified by main thread
+// blink red circle when wake up
 void blink_thread_proc()
 {
     while (1) {
@@ -123,6 +132,8 @@ void blink_thread_proc()
 }
 
 // Full normal thread
+// blocked when not notified by main thread
+// stay blue when wake up
 void full_thread_proc()
 {
     while (1) {
@@ -136,19 +147,27 @@ void full_thread_proc()
     }
 }
 
+// LCD center logic control thread
 void lcd_run()
 {
+    // setup threads and background
     setup_background_layer();
     intB.rise(&i2c_cb_rise);
     blink_thread.start(blink_thread_proc);
     full_thread.start(full_thread_proc);
     while (1) {
         if (status_flags.get() && WARNING_TRIGGER) {
+            // warning flag detected, wake up
+            // blink thread and keeps detecting warning
+            // flag.
             if (blink_semaphore.release() != osOK) {
                 MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_APPLICATION, MBED_ERROR_CODE_OUT_OF_MEMORY), "semaphore overflow\r\n");
             }
             status_flags.wait_all(ONE_BLINK);
         } else {
+            // warning flag not detected, keeps in
+            // normal thread and register breath until
+            // warning flag established
             breath_detected();
             if (full_semaphore.release() != osOK) {
                 MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_APPLICATION, MBED_ERROR_CODE_OUT_OF_MEMORY), "semaphore overflow\r\n");
