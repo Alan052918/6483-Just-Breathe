@@ -27,6 +27,19 @@ InterruptIn intB(PA_0, PullDown);
 
 Timeout timeout;
 
+// stack used by the draw_thread
+unsigned char blink_thread_stack[512];
+unsigned char full_thread_stack[512];
+Thread blink_thread(osPriorityBelowNormal1, 512, blink_thread_stack);
+Thread full_thread(osPriorityBelowNormal1, 512, full_thread_stack);
+
+// semaphore used to protect the new_values buffer
+Semaphore blink_semaphore(0, BUFFER_SIZE);
+Semaphore full_semaphore(0, BUFFER_SIZE);
+EventFlags status_flags;
+
+bool _cnt = true;
+
 // sets the background layer
 // to be visible, transparent, and
 // resets its colors to all black
@@ -53,18 +66,6 @@ void setup_foreground_layer(uint32_t color)
     lcd.SetTextColor(color);
 }
 
-// stack used by the draw_thread
-unsigned char blink_thread_stack[512];
-unsigned char full_thread_stack[512];
-Thread blink_thread(osPriorityBelowNormal1, 512, blink_thread_stack);
-Thread full_thread(osPriorityBelowNormal1, 512, full_thread_stack);
-
-// semaphore used to protect the new_values buffer
-Semaphore blink_semaphore(0, BUFFER_SIZE);
-Semaphore full_semaphore(0, BUFFER_SIZE);
-EventFlags status_flags;
-
-bool _cnt = true;
 // ISR
 void i2c_cb_rise()
 {
@@ -76,15 +77,21 @@ void i2c_cb_rise()
     }
 }
 
+// 10s timeout expired callback
+// set the warning flag to flash the red light on the LCD screen
 void timeout_expired_cb()
 {
     status_flags.set(WARNING_TRIGGER);
 }
 
+// clear flags and reset timeout when a breathe is registered
 void breath_detected()
 {
+    // clear the warning flag
     if (status_flags.get() && WARNING_TRIGGER)
         status_flags.clear(WARNING_TRIGGER);
+
+    // reset the timeout
     timeout.detach();
     timeout.attach(timeout_expired_cb, 12s);
 }

@@ -33,52 +33,71 @@
 // address of the first output register
 #define DATAX0 0x32
 
+// bounds for normal breathing combinated acceleration values
 #define BREATHE_UPPER_BOUND 1.025
 #define BREATHE_LOWER_BOUND 0.975
 
+// breathe buffer size and threshold
 #define BREATHE_BUFFER_SIZE 35
 #define BREATHE_THRESHOLD 7
 
-unsigned char LCD_thread_stack[4096];
-Thread LCD_thread(osPriorityBelowNormal1, 4096, LCD_thread_stack);
+// breathe buffer to take more data points into consideration when determining
+// if the user is breathing, reducing false positives
 CircularBuffer<bool, BREATHE_BUFFER_SIZE> breathe_buffer;
 int breathe_count = 0;
+
+unsigned char LCD_thread_stack[4096];
+Thread LCD_thread(osPriorityBelowNormal1, 4096, LCD_thread_stack);
 
 ADXL345 adxl(PB_11, PB_10);
 
 void update_buffer(bool new_data)
 {
+    // peek the oldest data point in the buffer and push new data (potentially
+    // overwriting oldest data point)
     bool peeked_data = false;
     breathe_buffer.peek(peeked_data);
     breathe_buffer.push(new_data);
+
     if (breathe_buffer.full()) {
+        // `breathe_count` change table for when buffer is full
+        // peeked_data \ new_data | true | false
+        // -----------------------+------+-------
+        // true                   | 0    | -1
+        // false                  | +1   | 0
         if (peeked_data && !new_data) {
             breathe_count--;
         } else if (!peeked_data && new_data) {
             breathe_count++;
         }
     } else if (new_data) {
+        // buffer is not full and new data is true, increment `breathe_count`
         breathe_count++;
     }
 }
 
 void read_data_adxllib()
 {
+    // ADXL345 accelerometer configurations
     adxl.setDataRate(BW_RATE_CONFIG);
     adxl.setPowerControl(POWER_CTL_CONFIG);
     adxl.setDataFormatControl(DATA_FORMAT_CONFIG);
     adxl.setOffset(ADXL345_Z, 0xF3);
 
     while (1) {
+        // sanity check
+        // halts program, usually due to loose pin connections
         int devid = adxl.getDevId();
         if (devid != 0xE5) {
             printf("ERROR: DEVID is not 0xE5\n");
             return;
         }
 
+        // i2c read x, y, z axis acceleration data
         int readings[3];
         adxl.getOutput(readings);
 
+        // process output data
         int raw_x = (signed short)(unsigned)readings[0];
         int raw_y = (signed short)(unsigned)readings[1];
         int raw_z = (signed short)(unsigned)readings[2];
@@ -86,13 +105,18 @@ void read_data_adxllib()
 
         printf("x: %5d\ty: %5d\tz: %5d\t Combined Acc: %.5lf \n", raw_x, raw_y, raw_z, comb);
 
+        // combinated acceleration is out of bounds of normal breathing range
+        // write to circular buffer to register one breathe
         if (comb < BREATHE_LOWER_BOUND || comb > BREATHE_UPPER_BOUND) {
             printf("I am BREATHING!!!!\n");
             update_buffer(true);
         } else {
+            // combinated acceleration is within normal breathing range
+            // write to circular buffer to register one non-breathe
             update_buffer(false);
         }
 
+        // check breathe data points against threshold to reduce false positives
         if (breathe_count > BREATHE_THRESHOLD) {
             printf("---------------- I am BREATHING!!!! +++++++++++++++++++++++++\n");
             breath_detected();
