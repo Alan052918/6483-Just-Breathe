@@ -1,4 +1,6 @@
-// Documents
+// Project: Just Breathe
+// Description: detect stop of breathing for at least 10 seconds using AXDL345
+//   accelerometer
 //
 // Group Members:
 // Yujie Yu, Net ID yy3913
@@ -6,6 +8,7 @@
 // Tong Wu, Net ID tw2593
 // Junda Ai, Net ID ja4426
 //
+// Documents
 // Dev board dev manual: https://www.st.com/resource/en/user_manual/um1670-discovery-kit-with-stm32f429zi-mcu-stmicroelectronics.pdf
 // Accelerometer datasheet: https://www.mouser.com/datasheet/2/389/dm00168691-1798633.pdf
 #include "mbed.h"
