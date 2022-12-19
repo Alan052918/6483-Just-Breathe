@@ -60,7 +60,7 @@ void read_data_adxllib()
         int raw_z = (signed short)(unsigned)readings[2];
         double comb = sqrt(raw_x * raw_x + raw_y * raw_y + raw_z * raw_z) / 256;
 
-       printf("x: %5d\ty: %5d\tz: %5d\t Combined Acc: %.5lf \n", raw_x, raw_y, raw_z, comb);
+        printf("x: %5d\ty: %5d\tz: %5d\t Combined Acc: %.5lf \n", raw_x, raw_y, raw_z, comb);
 
         thread_sleep_for(10);
     }
