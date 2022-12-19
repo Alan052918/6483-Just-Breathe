@@ -86,7 +86,7 @@ void breath_detected()
     if (status_flags.get() && WARNING_TRIGGER)
         status_flags.clear(WARNING_TRIGGER);
     timeout.detach();
-    timeout.attach(timeout_expired_cb, 2s);
+    timeout.attach(timeout_expired_cb, 12s);
 }
 
 // Helper function to draw circle

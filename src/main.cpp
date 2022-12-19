@@ -33,13 +33,34 @@
 // address of the first output register
 #define DATAX0 0x32
 
-#define BREATHE_UPPER_BOUND 1.038
-#define BREATHE_LOWER_BOUND 0.972
+#define BREATHE_UPPER_BOUND 1.025
+#define BREATHE_LOWER_BOUND 0.975
+
+#define BREATHE_BUFFER_SIZE 35
+#define BREATHE_THRESHOLD 7
 
 unsigned char LCD_thread_stack[4096];
 Thread LCD_thread(osPriorityBelowNormal1, 4096, LCD_thread_stack);
+CircularBuffer<bool, BREATHE_BUFFER_SIZE> breathe_buffer;
+int breathe_count = 0;
 
 ADXL345 adxl(PB_11, PB_10);
+
+void update_buffer(bool new_data)
+{
+    bool peeked_data = false;
+    breathe_buffer.peek(peeked_data);
+    breathe_buffer.push(new_data);
+    if (breathe_buffer.full()) {
+        if (peeked_data && !new_data) {
+            breathe_count--;
+        } else if (!peeked_data && new_data) {
+            breathe_count++;
+        }
+    } else if (new_data) {
+        breathe_count++;
+    }
+}
 
 void read_data_adxllib()
 {
@@ -66,8 +87,15 @@ void read_data_adxllib()
         printf("x: %5d\ty: %5d\tz: %5d\t Combined Acc: %.5lf \n", raw_x, raw_y, raw_z, comb);
 
         if (comb < BREATHE_LOWER_BOUND || comb > BREATHE_UPPER_BOUND) {
-            breath_detected();
             printf("I am BREATHING!!!!\n");
+            update_buffer(true);
+        } else {
+            update_buffer(false);
+        }
+
+        if (breathe_count > BREATHE_THRESHOLD) {
+            printf("---------------- I am BREATHING!!!! +++++++++++++++++++++++++\n");
+            breath_detected();
         }
 
         thread_sleep_for(10);
