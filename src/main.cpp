@@ -28,7 +28,7 @@
 // self test | SPI        | interrupt mode | reserved | resolution      | justified mode  | g range
 // disabled  | 4-wire SPI | active high    |          | full resolution | right-justified | +/-2 g
 #define DATA_FORMAT 0x31
-#define DATA_FORMAT_CONFIG 0b0'0'0'0'1'0'00
+#define DATA_FORMAT_CONFIG 0b0'0'0'0'1'0'01
 
 // address of the first output register
 #define DATAX0 0x32
@@ -43,6 +43,7 @@ void read_data_adxllib()
     adxl.setDataRate(BW_RATE_CONFIG);
     adxl.setPowerControl(POWER_CTL_CONFIG);
     adxl.setDataFormatControl(DATA_FORMAT_CONFIG);
+    adxl.setOffset(ADXL345_Z, 0xF3);
 
     while (1) {
         int devid = adxl.getDevId();
@@ -59,7 +60,7 @@ void read_data_adxllib()
         int raw_z = (signed short)(unsigned)readings[2];
         double comb = sqrt(raw_x * raw_x + raw_y * raw_y + raw_z * raw_z) / 256;
 
-        printf("x: %5d\ty: %5d\tz: %5d\t Combined Acc: %.5lf \n", raw_x, raw_y, raw_z, comb);
+       printf("x: %5d\ty: %5d\tz: %5d\t Combined Acc: %.5lf \n", raw_x, raw_y, raw_z, comb);
 
         thread_sleep_for(10);
     }
