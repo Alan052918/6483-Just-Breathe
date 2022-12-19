@@ -33,6 +33,9 @@
 // address of the first output register
 #define DATAX0 0x32
 
+#define BREATHE_UPPER_BOUND 1.038
+#define BREATHE_LOWER_BOUND 0.972
+
 unsigned char LCD_thread_stack[4096];
 Thread LCD_thread(osPriorityBelowNormal1, 4096, LCD_thread_stack);
 
@@ -61,6 +64,11 @@ void read_data_adxllib()
         double comb = sqrt(raw_x * raw_x + raw_y * raw_y + raw_z * raw_z) / 256;
 
         printf("x: %5d\ty: %5d\tz: %5d\t Combined Acc: %.5lf \n", raw_x, raw_y, raw_z, comb);
+
+        if (comb < BREATHE_LOWER_BOUND || comb > BREATHE_UPPER_BOUND) {
+            breath_detected();
+            printf("I am BREATHING!!!!\n");
+        }
 
         thread_sleep_for(10);
     }

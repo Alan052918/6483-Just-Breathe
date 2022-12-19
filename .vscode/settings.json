@@ -8,7 +8,9 @@
         "limits": "cpp",
         "shared_mutex": "cpp",
         "sstream": "cpp",
-        "streambuf": "cpp"
+        "streambuf": "cpp",
+        "chrono": "cpp",
+        "thread": "cpp"
     },
     "workbench.editor.revealIfOpen": true
 }

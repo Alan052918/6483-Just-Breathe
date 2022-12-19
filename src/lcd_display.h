@@ -25,6 +25,8 @@ uint32_t graph_height = graph_width;
 
 InterruptIn intB(PA_0, PullDown);
 
+Timeout timeout;
+
 // sets the background layer
 // to be visible, transparent, and
 // resets its colors to all black
@@ -72,6 +74,19 @@ void i2c_cb_rise()
     } else {
         status_flags.clear(WARNING_TRIGGER);
     }
+}
+
+void timeout_expired_cb()
+{
+    status_flags.set(WARNING_TRIGGER);
+}
+
+void breath_detected()
+{
+    if (status_flags.get() && WARNING_TRIGGER)
+        status_flags.clear(WARNING_TRIGGER);
+    timeout.detach();
+    timeout.attach(timeout_expired_cb, 2s);
 }
 
 // Helper function to draw circle
@@ -127,6 +142,7 @@ void lcd_run()
             }
             status_flags.wait_all(ONE_BLINK);
         } else {
+            breath_detected();
             if (full_semaphore.release() != osOK) {
                 MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_APPLICATION, MBED_ERROR_CODE_OUT_OF_MEMORY), "semaphore overflow\r\n");
             }
